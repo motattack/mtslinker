@@ -1,7 +1,7 @@
-*/
 *.log
 *.mp4
 *.mp3
-!mtslinker
 !get_sessionId.mp4
-!setup.py
+__pycache__/
+*.pyc
+*.egg-info/
