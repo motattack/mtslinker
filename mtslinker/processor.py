@@ -6,7 +6,7 @@ import numpy as np
 from moviepy.audio.AudioClip import AudioArrayClip, CompositeAudioClip
 from moviepy.audio.io.AudioFileClip import AudioFileClip
 from moviepy.video.VideoClip import ColorClip
-from moviepy import VideoFileClip, concatenate_videoclips
+from moviepy import VideoFileClip, CompositeVideoClip
 
 import warnings
 warnings.simplefilter("ignore")
@@ -43,26 +43,22 @@ def process_video_clips(directory: str, json_data: Dict) -> Tuple[float, List[Vi
 
 
 def create_video_with_gaps(total_duration: float, video_clips: List[VideoFileClip]) -> VideoFileClip:
-    clips = []
-    current_time = 0.0
+    # Clips already carry their position on the webinar timeline via .with_start().
+    # concatenate_videoclips() DISCARDS .start and lays clips end to end, so parallel
+    # streams (camera + screen share) get appended instead of overlaid and the result
+    # is N times too long. CompositeVideoClip honours .start, and a black background of
+    # full length covers the gaps, so no filler clips are needed.
+    if not video_clips:
+        return ColorClip(size=(1920, 1080), color=(0, 0, 0), duration=total_duration)
 
-    for video in video_clips:
-        if video.start > current_time:
-            gap_duration = video.start - current_time
-            if gap_duration > 0:
-                empty_clip = ColorClip(size=(1920, 1080), color=(0, 0, 0), duration=gap_duration).with_start(
-                    current_time)
-                clips.append(empty_clip)
+    width = max(clip.w for clip in video_clips)
+    height = max(clip.h for clip in video_clips)
+    background = ColorClip(size=(width, height), color=(0, 0, 0), duration=total_duration)
 
-        clips.append(video)
-        current_time = video.end
+    final_video = CompositeVideoClip(
+        [background] + list(video_clips), size=(width, height)
+    ).with_duration(total_duration)
 
-    if current_time < total_duration:
-        remaining_duration = total_duration - current_time
-        empty_clip = ColorClip(size=(1920, 1080), color=(0, 0, 0), duration=remaining_duration).with_start(current_time)
-        clips.append(empty_clip)
-
-    final_video = concatenate_videoclips(clips, method='compose')
     logging.info(f'Final video duration: {final_video.duration}')
     return final_video
 
