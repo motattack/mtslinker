@@ -75,7 +75,8 @@ def create_audio_with_gaps(total_duration: float, audio_clips: List[AudioFileCli
         if audio.start > current_time:
             gap_duration = audio.start - current_time
             if gap_duration > 0:
-                silence_segment = AudioArrayClip(np.zeros((int(gap_duration * 8000), 2)), fps=8000).with_start(
+                # A positive gap can round down to zero samples.
+                silence_segment = AudioArrayClip(np.zeros((max(1, int(gap_duration * 8000)), 2)), fps=8000).with_start(
                     current_time)
                 audio_segments.append(silence_segment)
 
@@ -84,7 +85,7 @@ def create_audio_with_gaps(total_duration: float, audio_clips: List[AudioFileCli
 
     if current_time < total_duration:
         remaining_duration = total_duration - current_time
-        silence_segment = AudioArrayClip(np.zeros((int(remaining_duration * 8000), 2)), fps=8000).with_start(
+        silence_segment = AudioArrayClip(np.zeros((max(1, int(remaining_duration * 8000)), 2)), fps=8000).with_start(
             current_time)
         audio_segments.append(silence_segment)
 
