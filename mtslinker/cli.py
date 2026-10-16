@@ -19,6 +19,17 @@ def parse_arguments():
         '--session-id',
         help='[Optional] sessionId token for accessing private recordings.'
     )
+    parser.add_argument(
+        '--download-workers',
+        type=int,
+        default=8,
+        help='Number of recording fragments to download concurrently (default: 8).'
+    )
+    parser.add_argument(
+        '--multitrack',
+        action='store_true',
+        help='Include separate audio tracks for the lecturer and other sources.'
+    )
     return parser.parse_args()
 
 def extract_ids_from_url(url: str):
@@ -36,7 +47,11 @@ def extract_ids_from_url(url: str):
     return None, None
 
 def main():
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s [%(levelname)s] %(message)s',
+        datefmt='%H:%M:%S',
+    )
 
     args = parse_arguments()
 
@@ -51,7 +66,9 @@ def main():
     if fetch_webinar_data(
     event_sessions=event_sessions,
         record_id=record_id,
-        session_id=args.session_id
+        session_id=args.session_id,
+        download_workers=args.download_workers,
+        include_multitrack=args.multitrack,
     ):
         logging.info('Download completed.')
 
